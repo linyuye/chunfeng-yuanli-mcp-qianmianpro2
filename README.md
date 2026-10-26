@@ -1,12 +1,12 @@
-# chunfeng-yuanli-ai-mcp — 心跳元力 DokiDoki 本地 BLE MCP 控制
+# 春风元力千面 2 Pro MCP
 
 [中文](README.md) | [English](README.en.md)
 
-**chunfeng-yuanli-ai-mcp** 是一个本地 Bluetooth Low Energy（BLE）MCP 服务器，让 AI Agent 扫描附近设备、匹配已支持的 profile，并调用经过实现的设备动作。
+这是一个面向春风元力千面 2 Pro（BLE 名称 `TF-PTPRO`）的本地 Bluetooth Low Energy（BLE）MCP 服务器。AI 客户端可通过 MCP 扫描设备、连接设备，并调用吮吸与震动控制工具。项目同时保留 `DK-META2` profile。
 
 这是一个非官方、本地优先的 MCP 实现，主打隐私、低延迟和可控的设备操作。
 
-本项目是非官方实现，不读取账号、不调用云端控制接口，也不包含官方客户端源码、安装包或设备固件。DokiDoki、心跳元力及相关名称归其各自权利人所有；本项目与设备厂商没有隶属或背书关系。
+本项目是非官方实现，不读取账号、不调用云端控制接口，也不包含官方客户端源码、安装包或设备固件。春风元力、千面及相关名称归其各自权利人所有；本项目与设备厂商没有隶属或背书关系。
 
 > 状态：实验性项目。协议和设备行为来自对客户端通信行为的观察，使用前请在场确认设备状态，并保留实体停止方式。
 
@@ -27,7 +27,7 @@ Windows WebBridge（WSL 网页控制器模式）或 DokiDokiDeviceManager（直�
 WSL / Windows Bluetooth LE
     │ GATT service/characteristic 写入
     ▼
-DK-META2
+TF-PTPRO / DK-META2
 ```
 
 当前实现两个按设备名匹配的 profile：
@@ -50,8 +50,8 @@ DK-META2
 ## 安装
 
 ```powershell
-git clone https://github.com/vmayfuture/chunfeng-yuanli-ai-mcp.git
-cd chunfeng-yuanli-ai-mcp
+git clone https://github.com/linyuye/chunfeng-yuanli-mcp-qianmianpro2.git
+cd chunfeng-yuanli-mcp-qianmianpro2
 py -3.11 -m venv .venv
 & .\.venv\Scripts\python.exe -m pip install -e .
 ```
@@ -73,8 +73,8 @@ wsl.exe -d Ubuntu-24.04
 进入 WSL shell 后克隆并安装项目及依赖（安装会从 Python 包索引下载依赖）：
 
 ```bash
-git clone https://github.com/vmayfuture/chunfeng-yuanli-ai-mcp.git
-cd chunfeng-yuanli-ai-mcp
+git clone https://github.com/linyuye/chunfeng-yuanli-mcp-qianmianpro2.git
+cd chunfeng-yuanli-mcp-qianmianpro2
 python3 -m venv ~/.venvs/heartbeat-yuanli-mcp
 ~/.venvs/heartbeat-yuanli-mcp/bin/python -m pip install -e .
 ```
@@ -211,6 +211,13 @@ checksum = (-(command + value)) & 0xFF
 ## 许可证
 
 本项目使用 MIT License，见 [LICENSE](./LICENSE)。依赖包各自遵循其上游许可证。
+
+## 使用的项目
+
+- [Model Context Protocol（MCP）](https://modelcontextprotocol.io/)：AI 客户端与本地工具服务器之间的协议。
+- [FastMCP](https://github.com/jlowin/fastmcp)：构建本项目 Python MCP 服务，支持 stdio 与 Streamable HTTP。
+- [Bleak](https://github.com/hbldh/bleak)：Python BLE 扫描与 GATT 连接库。
+- [`@tryjoy/dokidoki` npm CLI](https://www.npmjs.com/package/%40tryjoy/dokidoki)：参考其公开客户端行为分析 BLE 控制协议。本项目是独立的 Python MCP 实现，不依赖 Node.js/npm，也不包含该 CLI 的代码或发行文件。
 
 ## 贡献
 

@@ -1,8 +1,8 @@
-# chunfeng-yuanli-ai-mcp — Local BLE MCP control for DokiDoki devices
+# Chunfeng Yuanli Qianmian 2 Pro MCP
 
 [中文](README.md) | [English](README.en.md)
 
-chunfeng-yuanli-ai-mcp is an unofficial local Model Context Protocol (MCP) server. It scans nearby BLE devices and exposes actions only for implemented device profiles. The current profiles are `DK-META2` and `TF-PTPRO`.
+An unofficial local Bluetooth Low Energy (BLE) MCP server for the Chunfeng Yuanli Qianmian 2 Pro (`TF-PTPRO`). AI clients can scan and connect to nearby devices and invoke suction and vibration tools. The project also retains the `DK-META2` profile.
 
 This experimental implementation is based on observed client communication. It does not read vendor accounts, call cloud control APIs or bundle official client software or firmware. Product names belong to their owners; there is no vendor affiliation or endorsement.
 
@@ -11,8 +11,8 @@ This experimental implementation is based on observed client communication. It d
 Requirements: Python 3.11+, BLE-capable OS/hardware, Bluetooth enabled, scanning/connection permissions and an available supported device. This workstation currently passes its adapter through usbipd to Ubuntu 24.04 / WSL2; see the Chinese guide for the WSL MCP configuration.
 
 ```powershell
-git clone https://github.com/vmayfuture/chunfeng-yuanli-ai-mcp.git
-cd chunfeng-yuanli-ai-mcp
+git clone https://github.com/linyuye/chunfeng-yuanli-mcp-qianmianpro2.git
+cd chunfeng-yuanli-mcp-qianmianpro2
 py -3.11 -m venv .venv
 & ./.venv/Scripts/python.exe -m pip install -e .
 & ./.venv/Scripts/python.exe -m heartbeat_yuanli_mcp.server --doctor
@@ -28,7 +28,7 @@ Use the virtual environment's absolute Python path:
 {
   "mcpServers": {
     "heartbeat-yuanli": {
-      "command": "C:/tools/chunfeng-yuanli-ai-mcp/.venv/Scripts/python.exe",
+      "command": "C:/tools/chunfeng-yuanli-mcp-qianmianpro2/.venv/Scripts/python.exe",
       "args": ["-m", "heartbeat_yuanli_mcp.server"],
       "env": {"DOKIDOKI_DEVICE_NAME": "TF-PTPRO"}
     }
@@ -104,3 +104,10 @@ Pure protocol construction tests need no hardware; they do not establish real BL
 **Can I use another model?** Nearby devices are listed, but only devices with an explicit profile expose control tools.
 
 MIT license: [LICENSE](LICENSE). Contributions: [CONTRIBUTING.md](CONTRIBUTING.md). Security or unexpected behavior: [SECURITY.md](SECURITY.md).
+
+## Projects used
+
+- [Model Context Protocol (MCP)](https://modelcontextprotocol.io/): protocol between AI clients and local tool servers.
+- [FastMCP](https://github.com/jlowin/fastmcp): Python MCP server framework used for stdio and Streamable HTTP transports.
+- [Bleak](https://github.com/hbldh/bleak): Python library for BLE scanning and GATT connections.
+- [`@tryjoy/dokidoki` npm CLI](https://www.npmjs.com/package/%40tryjoy/dokidoki): its publicly available client behavior was used as a reference when analyzing BLE control. This is an independent Python MCP implementation; it does not require Node.js/npm and does not bundle the CLI's code or distribution files.
