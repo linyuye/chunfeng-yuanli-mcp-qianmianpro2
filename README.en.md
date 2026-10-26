@@ -1,0 +1,106 @@
+# chunfeng-yuanli-ai-mcp — Local BLE MCP control for DokiDoki devices
+
+[中文](README.md) | [English](README.en.md)
+
+chunfeng-yuanli-ai-mcp is an unofficial local Model Context Protocol (MCP) server. It scans nearby BLE devices and exposes actions only for implemented device profiles. The current profiles are `DK-META2` and `TF-PTPRO`.
+
+This experimental implementation is based on observed client communication. It does not read vendor accounts, call cloud control APIs or bundle official client software or firmware. Product names belong to their owners; there is no vendor affiliation or endorsement.
+
+## Install and diagnose
+
+Requirements: Python 3.11+, BLE-capable OS/hardware, Bluetooth enabled, scanning/connection permissions and an available supported device. This workstation currently passes its adapter through usbipd to Ubuntu 24.04 / WSL2; see the Chinese guide for the WSL MCP configuration.
+
+```powershell
+git clone https://github.com/vmayfuture/chunfeng-yuanli-ai-mcp.git
+cd chunfeng-yuanli-ai-mcp
+py -3.11 -m venv .venv
+& ./.venv/Scripts/python.exe -m pip install -e .
+& ./.venv/Scripts/python.exe -m heartbeat_yuanli_mcp.server --doctor
+```
+
+The diagnostic command checks the environment and nearby supported devices. Release competing connections in the official client before connecting through MCP.
+
+## Configure a client
+
+Use the virtual environment's absolute Python path:
+
+```json
+{
+  "mcpServers": {
+    "heartbeat-yuanli": {
+      "command": "C:/tools/chunfeng-yuanli-ai-mcp/.venv/Scripts/python.exe",
+      "args": ["-m", "heartbeat_yuanli_mcp.server"],
+      "env": {"DOKIDOKI_DEVICE_NAME": "TF-PTPRO"}
+    }
+  }
+}
+```
+
+Replace the path with the interpreter where you installed the project. Other systems use their corresponding interpreter. Entry points are `heartbeat-yuanli-mcp` and `python -m heartbeat_yuanli_mcp.server`. See [configuration example](mcp-config.example.json) and [Chinese guide](README.md).
+
+For a URL-based connection, start FastMCP with Streamable HTTP: `python -m heartbeat_yuanli_mcp.server --transport http --host 127.0.0.1 --port 8000`. MCP clients connect to `http://127.0.0.1:8000/mcp`; see [HTTP configuration example](mcp-config.http.example.json). The service binds to loopback by default. Do not expose the unauthenticated BLE control endpoint to the public internet.
+
+## First use
+
+Stay beside the device and retain a physical way to stop it. Example agent requests:
+
+```text
+Use heartbeat-yuanli to list nearby BLE devices. Report the list only;
+do not send motion commands.
+```
+
+```text
+Connect the TF-PTPRO device I selected by its BLE address. Read its connection status,
+verify stop_device first, then disconnect.
+```
+
+These are sample prompts, not new hardware test results. An explicitly authorized low-intensity test can use:
+
+```text
+list_devices
+connect_device(address="selected BLE address", name="TF-PTPRO")
+set_suction(level=5, confirm=true)
+stop_device
+disconnect_device
+```
+
+| Tool | Behavior |
+| --- | --- |
+| `list_devices` | Scan nearby BLE devices and mark known profiles; no motion |
+| `connect_device` | Connect by BLE address and match a supported profile |
+| `get_device_status` | Report MCP's connection state |
+| `set_vibration` | Set vibration level on DK-META2 / TF-PTPRO; output persists until a stop tool is called. Select vibration mode with the TF-PTPRO physical button first. |
+| `set_suction` | One-shot TF-PTPRO suction protocol value, 1–100 |
+| `set_linear` | Linear motion level, 0–100 |
+| `set_rotary` | Rotation level, 0–100 |
+| `stop_device` | Set supported outputs to zero |
+| `stop_vibration` | Send the candidate vibration-channel stop frame; isolation from suction still needs hardware verification |
+| `disconnect_device` | Stop heartbeat, zero outputs and disconnect |
+
+Nonzero motion requires `confirm=true`. This is a local gate, not Bluetooth authentication. Connection state does not prove actual physical output; observe it directly. Arbitrary GATT writes, command codes and raw hexadecimal commands are not exposed.
+
+## Compatibility and limits
+
+Only `DK-META2` and `TF-PTPRO` have explicit profiles. TF-PTPRO requires its physical button to switch into vibration mode. The web page's one-second vibration test still stops automatically; MCP vibration persists until `stop_vibration`, which sends a candidate per-channel stop frame whose isolation from suction still needs hardware verification. `stop_device` stops every supported output. The user confirmed perceiving suction and vibration on 2026-10-26. Protocol notifications are not force measurements. Listing an unknown device does not make it controllable.
+
+A heartbeat is sent every two seconds after connection. Heartbeat/write failures, shutdown and explicit disconnect trigger attempts to stop supported outputs and disconnect. These actions depend on the OS, BLE link and firmware. Do not run nonzero motion unattended or when device state and a quick stop are uncertain.
+
+The official client and MCP should not hold the same GATT connection simultaneously. The WSL USB Bluetooth passthrough adapter cannot be used by Windows MCP while attached to WSL; detach it from WSL before using Windows BLE. Vendor account authentication, encrypted pairing implementation and cloud authorization are not included. Commands send one frame per action with no additional 120 ms application throttle; frequent calls need hardware stability checks.
+
+## Protocol and tests
+
+The profiles use service `0000ffac-0000-1000-8000-00805f9b34fb`, write characteristics `ffb5` / `ffb7`, and notification characteristic `ffb8`. DK-META2 uses vibration, linear and rotary codes `0x08`, `0x0B` and `0x0E`. TF-PTPRO uses a compound one-shot suction payload. See [protocol notes](docs/protocol.md).
+
+```powershell
+& ./.venv/Scripts/python.exe -m unittest discover -s tests -v
+```
+
+Pure protocol construction tests need no hardware; they do not establish real BLE compatibility. Hardware checks should begin at low intensity and verify stopping first.
+
+**Cannot connect?** Check permissions, proximity and battery, release competing connections and run `--doctor`.
+
+**Does it use the cloud?** Control runs locally over BLE without vendor account access.
+
+**Can I use another model?** Nearby devices are listed, but only devices with an explicit profile expose control tools.
+
+MIT license: [LICENSE](LICENSE). Contributions: [CONTRIBUTING.md](CONTRIBUTING.md). Security or unexpected behavior: [SECURITY.md](SECURITY.md).

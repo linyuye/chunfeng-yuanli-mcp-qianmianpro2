@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "heartbeat-yuanli": {
+      "command": "python",
+      "args": [
+        "-m",
+        "heartbeat_yuanli_mcp.server"
+      ],
+      "env": {
+        "DOKIDOKI_DEVICE_NAME": "TF-PTPRO"
+      }
+    }
+  }
+}
