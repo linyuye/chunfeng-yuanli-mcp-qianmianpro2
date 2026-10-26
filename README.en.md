@@ -107,6 +107,7 @@ MIT license: [LICENSE](LICENSE). Contributions: [CONTRIBUTING.md](CONTRIBUTING.m
 
 ## Projects used
 
+- [chunfeng-yuanli-ai-mcp](https://github.com/vmayfuture/chunfeng-yuanli-ai-mcp): This project builds on and adapts this open-source MCP server and BLE control implementation. Thanks to the original author.
 - [Model Context Protocol (MCP)](https://modelcontextprotocol.io/): protocol between AI clients and local tool servers.
 - [FastMCP](https://github.com/jlowin/fastmcp): Python MCP server framework used for stdio and Streamable HTTP transports.
 - [Bleak](https://github.com/hbldh/bleak): Python library for BLE scanning and GATT connections.

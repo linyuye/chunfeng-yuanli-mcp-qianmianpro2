@@ -214,6 +214,7 @@ checksum = (-(command + value)) & 0xFF
 
 ## 使用的项目
 
+- [chunfeng-yuanli-ai-mcp](https://github.com/vmayfuture/chunfeng-yuanli-ai-mcp)：本项目基于该开源项目继续改造，保留并扩展其 MCP 服务与 BLE 控制实现。感谢原作者的工作。
 - [Model Context Protocol（MCP）](https://modelcontextprotocol.io/)：AI 客户端与本地工具服务器之间的协议。
 - [FastMCP](https://github.com/jlowin/fastmcp)：构建本项目 Python MCP 服务，支持 stdio 与 Streamable HTTP。
 - [Bleak](https://github.com/hbldh/bleak)：Python BLE 扫描与 GATT 连接库。
