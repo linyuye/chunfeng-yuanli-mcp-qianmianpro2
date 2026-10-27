@@ -88,12 +88,15 @@ disconnect_device
 | `stop_vibration` | Send the candidate vibration-channel stop frame; isolation from suction still needs hardware verification |
 | `disconnect_device` | Stop heartbeat, zero outputs and disconnect |
 | `create_sine_waveform` | Generate and save a sine strength timeline, optionally with persistent vibration |
+| `create_intent_waveform` | Map intents such as gentle/medium/intense to deterministic strength, angular frequency and phase parameters |
 | `save_waveform` / `list_waveforms` / `get_waveform` | Create, list and inspect reusable action timelines |
 | `start_waveform` / `get_waveform_status` / `stop_waveform` | Play asynchronously, inspect sent events and stop future events |
 | `start_action_recording` / `stop_action_recording` / `get_action_recording` | Record commands sent by this MCP and device replies locally |
 | `save_recording_as_waveform` | Convert successfully sent recording commands into a reusable waveform |
 
 Example: call `create_sine_waveform(name="gentle", duration_seconds=20, period_seconds=10, minimum_level=5, maximum_level=25, interval_seconds=2, vibration_level=5)`, then `start_waveform(name="gentle", confirm=true)`. The agent can inspect requested time, send time, result and available device reply for each event with `get_waveform_status`. Vibration stays on when a waveform completes or `stop_waveform` is called. Stop it separately with `stop_vibration`, or explicitly request `stop_waveform(stop_vibration=true)`.
+
+For natural-language intent, call `create_intent_waveform(name="soft1", intent="gentle", duration_seconds=20, interval_seconds=2)`. It accepts Chinese and English synonyms for gentle, medium and intense; ambiguous or unknown intents return an error. Defaults are gentle `(level 5–20, ω=1.5)`, medium `(10–45, ω=0.8)` and intense `(30–80, ω=0.4)`, where ω is in rad/s. Override with `minimum_level`, `maximum_level`, `angular_frequency`, `phase_radians` or `vibration_level`. Creation only saves and returns the proposed plan; inspect it before `start_waveform(name="soft1", confirm=true)`. These are fixed mappings, not learned from user history or physical feedback. A larger ω means a shorter period and faster changes; the gentle profile also uses lower strength limits.
 
 For recording, call `start_action_recording`, perform actions, then `stop_action_recording(name="take1")`. Convert it with `save_recording_as_waveform(recording_name="take1", waveform_name="replay1")`. Data is stored in a local SQLite file under the user's data directory; `TFPTPRO_WAVEFORM_DIR` can select another directory. BLE addresses are not stored. Timelines capture MCP commands and available replies, not sensor-measured physical suction or vibration. TF-PTPRO suction is a one-shot trigger, so a sine curve is approximated by spaced individual actions rather than continuous analog output. Limits: 100 events, 120 seconds and at least 2 seconds between suction triggers.
 

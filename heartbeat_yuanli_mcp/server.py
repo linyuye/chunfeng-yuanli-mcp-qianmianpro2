@@ -17,7 +17,7 @@ from fastmcp import Context, FastMCP
 
 from .device_manager import DokiDokiDeviceManager, DokiDokiError
 from .web_bridge import WebControllerBridge
-from .waveforms import WaveService, WaveStore, sine_events
+from .waveforms import WaveService, WaveStore, intent_waveform, sine_events, validate_events, validate_name
 
 LOGGER = logging.getLogger("heartbeat_yuanli_mcp")
 os.environ.setdefault("FASTMCP_LOG_LEVEL", "WARNING")
@@ -51,6 +51,7 @@ mcp = FastMCP(
     instructions=(
         "先调用 get_device_status 或 list_devices，再调用 connect_device。"
         "非零动作必须显式传 confirm=true；TF-PTPRO 震动持续运行，使用 stop_vibration 单独停止，stop_device 会停止所有支持的输出。"
+        "用户用自然语言描述波形强度时，识别温柔、普通、猛烈等意图并调用 create_intent_waveform；先检查返回的参数/事件，再经 start_waveform confirm=true 播放。"
     ),
     lifespan=app_lifespan,
 )
@@ -175,11 +176,30 @@ async def create_sine_waveform(name: str, duration_seconds: float, period_second
         events = sine_events(duration_seconds, period_seconds, minimum_level, maximum_level,
                              interval_seconds, vibration_level)
         item = {"name": name, "events": events}
-        from .waveforms import validate_name, validate_events
         item["name"] = validate_name(name)
         item["events"] = validate_events(events)
         WaveStore().put("waveform", item["name"], item)
         return {"ok": True, **item, "note": "强度是发送给设备的协议值，不是物理测量值。"}
+    except Exception as exc:
+        return _error_result(exc)
+
+
+@mcp.tool(name="create_intent_waveform", description=(
+    "把用户的自然语言强度意图确定性映射为波形预设并本地保存。支持温柔/轻柔、普通/适中、猛烈/强烈及英文同义词；"
+    "温柔档默认低强度且角频率较大，猛烈档默认强度较高且角频率较小。支持覆盖强度范围、angular_frequency(ω)、phase_radians(b) 和震动强度。"
+    "返回参数及完整事件序列供Agent检查；此工具只创建不播放。"
+))
+async def create_intent_waveform(name: str, intent: str, duration_seconds: float = 20.0,
+                                 interval_seconds: float = 2.0, vibration_level: int | None = None,
+                                 minimum_level: int | None = None, maximum_level: int | None = None,
+                                 angular_frequency: float | None = None,
+                                 phase_radians: float = 0.0) -> dict[str, Any]:
+    try:
+        item = intent_waveform(name, intent, duration_seconds, interval_seconds, vibration_level,
+                               minimum_level, maximum_level, angular_frequency, phase_radians)
+        WaveStore().put("waveform", item["name"], item)
+        return {"ok": True, **item,
+                "note": "意图映射为确定预设；吮吸为离散单次触发。检查参数后，需另行调用 start_waveform(confirm=true) 播放。"}
     except Exception as exc:
         return _error_result(exc)
 

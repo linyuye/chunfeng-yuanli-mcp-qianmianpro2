@@ -17,6 +17,16 @@ from typing import Any
 MAX_SECONDS = 120.0
 MAX_EVENTS = 100
 MIN_SUCTION_INTERVAL = 2.0
+INTENT_PRESETS: dict[str, dict[str, Any]] = {
+    "gentle": {"minimum_level": 5, "maximum_level": 20, "angular_frequency": 1.5},
+    "medium": {"minimum_level": 10, "maximum_level": 45, "angular_frequency": 0.8},
+    "intense": {"minimum_level": 30, "maximum_level": 80, "angular_frequency": 0.4},
+}
+INTENT_TERMS = {
+    "gentle": ("温柔", "轻柔", "轻一点", "柔和", "gentle", "soft", "mild"),
+    "medium": ("普通", "适中", "正常", "中等", "medium", "normal", "moderate"),
+    "intense": ("猛烈", "强烈", "刺激", "强一点", "大力", "intense", "strong", "powerful"),
+}
 
 
 def _number(value: Any, name: str) -> float:
@@ -65,10 +75,11 @@ def validate_events(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def sine_events(duration: float, period: float, minimum: int, maximum: int,
-                interval: float, vibration: int | None) -> list[dict[str, Any]]:
+                interval: float, vibration: int | None, phase_radians: float = 0.0) -> list[dict[str, Any]]:
     duration = _number(duration, "duration_seconds")
     period = _number(period, "period_seconds")
     interval = _number(interval, "interval_seconds")
+    phase_radians = _number(phase_radians, "phase_radians")
     if not 2 <= duration <= MAX_SECONDS or not 2 <= period <= MAX_SECONDS:
         raise ValueError(f"时长和周期须在 2–{MAX_SECONDS:g} 秒之间。")
     if interval < MIN_SUCTION_INTERVAL or interval > duration:
@@ -85,9 +96,46 @@ def sine_events(duration: float, period: float, minimum: int, maximum: int,
         result.append({"at": 0.0, "action": "vibration", "level": vibration})
     for index in range(count):
         at = round(index * interval, 3)
-        level = round((minimum + maximum) / 2 + (maximum - minimum) / 2 * math.sin(2 * math.pi * at / period))
+        level = round((minimum + maximum) / 2 + (maximum - minimum) / 2 * math.sin(2 * math.pi * at / period + phase_radians))
         result.append({"at": at, "action": "suction", "level": level})
     return validate_events(result)
+
+
+def resolve_intent(intent: str) -> tuple[str, dict[str, Any]]:
+    """Resolve a natural-language style phrase to a deterministic preset."""
+    if not isinstance(intent, str) or not intent.strip():
+        raise ValueError("intent 须描述温柔、普通或猛烈等强度风格。")
+    normalized = intent.strip().casefold()
+    matches = [key for key, terms in INTENT_TERMS.items() if any(term.casefold() in normalized for term in terms)]
+    if len(matches) != 1:
+        if not matches:
+            raise ValueError("无法识别意图；请使用温柔、普通或猛烈，或提供明确的强度和角频率。")
+        raise ValueError("意图同时匹配多个强度档位，请改为单一风格。")
+    key = matches[0]
+    return key, dict(INTENT_PRESETS[key])
+
+
+def intent_waveform(name: str, intent: str, duration: float = 20.0, interval: float = 2.0,
+                    vibration: int | None = None, minimum: int | None = None,
+                    maximum: int | None = None, angular_frequency: float | None = None,
+                    phase_radians: float = 0.0) -> dict[str, Any]:
+    """Build a named preset waveform, with explicit optional parameter overrides."""
+    preset_name, params = resolve_intent(intent)
+    lo = params["minimum_level"] if minimum is None else minimum
+    hi = params["maximum_level"] if maximum is None else maximum
+    omega = params["angular_frequency"] if angular_frequency is None else _number(angular_frequency, "angular_frequency")
+    if omega <= 0:
+        raise ValueError("angular_frequency 必须大于 0。")
+    period = 2 * math.pi / omega
+    events = sine_events(duration, period, lo, hi, interval, vibration, phase_radians)
+    return {
+        "name": validate_name(name), "intent": preset_name,
+        "parameters": {"minimum_level": lo, "maximum_level": hi,
+                       "angular_frequency": round(omega, 6), "period_seconds": round(period, 3),
+                       "phase_radians": phase_radians, "duration_seconds": duration,
+                       "interval_seconds": interval, "vibration_level": vibration},
+        "events": events,
+    }
 
 
 class WaveStore:

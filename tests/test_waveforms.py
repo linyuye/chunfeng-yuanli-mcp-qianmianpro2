@@ -3,7 +3,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from heartbeat_yuanli_mcp.waveforms import WaveService, WaveStore, sine_events, validate_events
+from heartbeat_yuanli_mcp.waveforms import WaveService, WaveStore, intent_waveform, resolve_intent, sine_events, validate_events
 
 
 class FakeManager:
@@ -44,6 +44,19 @@ class WaveformTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(ValueError):
             validate_events([{"at": 0, "action": "suction", "level": 5},
                              {"at": 1, "action": "suction", "level": 10}])
+
+    def test_natural_language_intents_map_to_documented_signal_parameters(self):
+        gentle_name, gentle = resolve_intent("来个温柔的")
+        intense_name, intense = resolve_intent("请猛烈一点")
+        self.assertEqual(gentle_name, "gentle")
+        self.assertEqual(intense_name, "intense")
+        self.assertGreater(gentle["angular_frequency"], intense["angular_frequency"])
+        self.assertLess(gentle["maximum_level"], intense["maximum_level"])
+        result = intent_waveform("gentle-1", "轻柔", duration=8, interval=2, phase_radians=1.0)
+        self.assertEqual(result["parameters"]["phase_radians"], 1.0)
+        self.assertEqual(len(result["events"]), 5)
+        with self.assertRaises(ValueError):
+            resolve_intent("温柔但猛烈")
 
     async def test_playback_leaves_vibration_running_then_independent_stop(self):
         self.service.save_waveform("quick", [{"at": 0, "action": "vibration", "level": 5},
