@@ -135,6 +135,15 @@ Start-Process -FilePath 'C:\Program Files\Google\Chrome\Application\chrome.exe' 
 | `stop_device` | 将所有已支持输出归零 |
 | `stop_vibration` | 发送候选震动通道停止帧；其与吮吸通道的隔离效果待真机验证 |
 | `disconnect_device` | 停止心跳、归零输出并断开连接 |
+| `create_sine_waveform` | 生成并本地保存正弦强度序列，可选同时开启持续震动 |
+| `save_waveform` / `list_waveforms` / `get_waveform` | 创建、列出和查看可复用的动作时间序列 |
+| `start_waveform` / `get_waveform_status` / `stop_waveform` | 异步播放、观察发送进度并停止后续事件 |
+| `start_action_recording` / `stop_action_recording` / `get_action_recording` | 记录本 MCP 发出的动作及设备回报，并保存到本机 |
+| `save_recording_as_waveform` | 将录制中成功发送的命令转换为可复用波形 |
+
+波形示例：先用 `create_sine_waveform(name="gentle", duration_seconds=20, period_seconds=10, minimum_level=5, maximum_level=25, interval_seconds=2, vibration_level=5)` 生成序列，再调用 `start_waveform(name="gentle", confirm=true)`。Agent 可通过 `get_waveform_status` 观察每个事件的请求时间、发送时间、结果和可用回报。波形结束或 `stop_waveform` 默认都不停止震动；需要时单独调用 `stop_vibration`，或显式调用 `stop_waveform(stop_vibration=true)`。
+
+也可以先 `start_action_recording`，再执行单次动作，随后 `stop_action_recording(name="take1")` 保存，并用 `save_recording_as_waveform(recording_name="take1", waveform_name="replay1")` 转成波形。录制数据保存在用户本机数据目录的 SQLite 文件中，可通过 `TFPTPRO_WAVEFORM_DIR` 指定目录；不保存 BLE 地址。时间序列记录的是 MCP 命令及回报，不是传感器测得的实际吸力或震动。TF-PTPRO 吮吸协议是一次性触发，因此正弦曲线由间隔触发的单次动作近似，不能视为连续模拟输出；事件最大 100 个、时间范围最大 120 秒、相邻吮吸触发至少间隔 2 秒。
 
 典型调用顺序：
 
