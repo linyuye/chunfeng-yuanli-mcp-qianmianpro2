@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>元力 · 本地控制台</title><link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script></head>
+<body>
+<div class="shell">
+  <header><a class="brand" href="/" aria-label="元力控制台首页"><span class="brand-mark">Y</span><span>YUANLI <small>LOCAL CONTROL</small></span></a><span class="local-tag"><i></i> 本地蓝牙连接</span></header>
+  <main>
+    <div class="intro"><div><p class="eyebrow">YOUR DEVICE, YOUR RHYTHM</p><h1>元力控制台<span>。</span></h1><p class="subtitle">连接你的千面 2 Pro，用一个页面掌握节奏。</p></div><div class="model-tag">TF-PTPRO <span>千面 2 Pro</span></div></div>
+    <div id="notice" class="notice" role="status" hidden></div>
+    <section class="connection card" aria-labelledby="connection-title">
+      <div class="connection-main"><div class="device-icon" aria-hidden="true"><div></div></div><div><div class="section-label">01 / DEVICE</div><h2 id="connection-title">设备连接 <span id="connection-badge" class="badge">未连接</span></h2><p id="connection-description">扫描附近蓝牙 LE 设备，选择目标后连接并检查控制协议。</p><p id="address" class="address">尚未选择设备</p></div></div>
+      <div class="connection-actions"><button id="scan" class="button secondary">扫描设备</button><select id="devices" aria-label="扫描发现的设备"><option value="">请先扫描并选择设备</option></select><button id="connect" class="button primary" disabled>连接并匹配 <span>↗</span></button><button id="disconnect" class="button secondary" hidden>断开连接</button></div>
+    </section>
+    <div class="controls-grid">
+      <section class="control card" aria-labelledby="suction-title"><div class="control-heading"><div><p class="section-label">02 / SUCTION</p><h2 id="suction-title">单次吮吸</h2></div><span class="mode-tag">单次触发</span></div><p class="description">设置强度，每次点击触发一次。无需持续按住。</p><div class="level-line"><span>吮吸强度</span><output id="suction-output" for="suction-level">5<span>%</span></output></div><input id="suction-level" type="range" min="1" max="100" value="5" aria-label="吮吸强度"><div class="range-labels"><span>轻柔 · 1%</span><span>100% · 强劲</span></div><div class="presets" data-target="suction-level"><button data-level="5" class="selected">5%</button><button data-level="10">10%</button><button data-level="25">25%</button><button data-level="50">50%</button></div><button id="suction" class="button action-button" disabled><span>触发一次吮吸</span><span>↗</span></button><p class="footnote">默认 5%。实际吸力随设备状态而变化。</p></section>
+      <section class="control card" aria-labelledby="vibration-title"><div class="control-heading"><div><p class="section-label">03 / VIBRATION</p><h2 id="vibration-title">1 秒震动试验</h2></div><span id="vibration-status" class="mode-tag">限时试验</span></div><p class="description">先用实体键切换到震动模式；每次输出 1 秒后自动停止。</p><div class="level-line"><span>震动强度</span><output id="vibration-output" for="vibration-level">25<span>%</span></output></div><input id="vibration-level" type="range" min="1" max="100" value="25" aria-label="震动强度" disabled><div class="range-labels"><span>最低</span><span>仅限试验</span></div><div class="duration"><label for="duration">试验时长</label><select id="duration" disabled><option value="1" selected>1 秒</option></select></div><button id="vibration" class="button action-button" disabled><span>触发 1 秒震动测试</span><span>·</span></button><p class="footnote">每次测试固定 1 秒并自动发送停止；设备回报不能替代体感确认。</p></section>
+    </div>
+    <section class="stop-strip"><div><span class="stop-symbol">■</span><div><strong>随时停下来</strong><p>停止当前输出，设备保持连接。</p></div></div><button id="stop" class="button stop-button" disabled>立即停止 <kbd>Esc</kbd></button></section>
+    <section class="activity card"><div class="activity-heading"><div><p class="section-label">04 / ACTIVITY</p><h2>连接与设备回报</h2></div><span id="service-status" class="service-state">正在连接本地服务…</span></div><div id="logs" class="logs" role="log" aria-live="polite"><p class="empty-log">连接服务后，操作记录会显示在这里。</p></div><details><summary>连接提示</summary><p>让设备开机并靠近电脑，避免手机 App 或 MCP 同时占用连接。扫描不到时可重启设备并检查系统蓝牙适配器。指令写入与设备回报会分别显示，实际吸力无法通过浏览器测量。</p></details><details><summary>原始设备回报 <span id="notification-count">0</span></summary><pre id="raw-notifications" class="raw-notifications">暂无回报。</pre></details></section>
+  </main>
+  <footer><span>YUANLI / LOCAL WORKSPACE</span><span>本地控制 · 扫描列表仅在本机页面显示</span></footer>
+</div>
+</body></html>

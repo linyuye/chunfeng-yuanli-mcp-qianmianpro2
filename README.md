@@ -15,20 +15,10 @@
 MCP 只是 AI 客户端与本地工具之间的调用协议，真正的设备通信链路如下：
 
 ```text
-MCP 客户端
-    │ JSON-RPC / stdio
-    ▼
-heartbeat_yuanli_mcp.server
-    │ 工具参数校验与生命周期管理
-    ▼
-Windows WebBridge（WSL 网页控制器模式）或 DokiDokiDeviceManager（直连模式）
-    │ 本机受令牌保护的 HTTP API 或 Bleak
-    ▼
-WSL / Windows Bluetooth LE
-    │ GATT service/characteristic 写入
-    ▼
-TF-PTPRO / DK-META2
+MCP 客户端 → FastMCP（stdio 或 HTTP）→ Bleak → Windows Bluetooth LE → 设备
 ```
+
+Windows 直连无需 WSL：2026-10-27 已通过 Windows MCP 实际扫描、连接 `TF-PTPRO`，并由用户确认 5% 震动和单次吮吸均有动作。单通道停止帧已发送，但其对同时运行的吮吸是否完全隔离仍需验证。
 
 当前实现两个按设备名匹配的 profile：
 
@@ -42,8 +32,7 @@ TF-PTPRO / DK-META2
 
 ## 要求
 
-- Python 3.11 或更高版本；
-- Python 3.11 或更高版本及支持 BLE 的操作系统；本机当前由 Ubuntu-24.04 / WSL2 通过 usbipd 持有蓝牙适配器，MCP 的 WSL 配置见下文；
+- Python 3.11 或更高版本及支持 BLE 的 Windows 蓝牙适配器；
 - 系统蓝牙已开启，设备没有被官方客户端或其他程序独占；
 - 对应系统账户具有蓝牙扫描和连接权限。
 
@@ -95,23 +84,40 @@ python -m heartbeat_yuanli_mcp.server
 heartbeat-yuanli-mcp
 ```
 
-配置示例见 [mcp-config.example.json](./mcp-config.example.json)。如果需要固定设备，可以通过环境变量设置自己的设备名或蓝牙地址；公开仓库不会保存真实设备地址。
+Windows stdio 配置见 [mcp-config.windows.example.json](./mcp-config.windows.example.json)，请将 `command` 替换为自己安装位置的 `.venv/Scripts/python.exe` 绝对路径。配置将 `TFPTPRO_WEB_BRIDGE` 设为 `0`，通过 Windows 蓝牙直连。如果需要固定设备，可以通过环境变量设置自己的设备名或蓝牙地址；公开仓库不会保存真实设备地址。
 
 ### 通过 URL 连接 FastMCP
 
-启动 Streamable HTTP 服务（默认只绑定本机回环地址）。在这台电脑上，蓝牙由 WSL 网页控制器持有，所以通过 WebBridge 转发；若 MCP 所在系统直接持有 BLE 适配器，则省略前两行环境变量：
+在项目目录启动 Windows 直连版 Streamable HTTP 服务：
 
 ```powershell
-$env:TFPTPRO_WEB_BRIDGE = "1"
-$env:DOKIDOKI_DEVICE_NAME = "TF-PTPRO"
-& .\.venv\Scripts\python.exe -m heartbeat_yuanli_mcp.server --transport http --host 127.0.0.1 --port 8000
+& .\start-windows-mcp.ps1
 ```
+
+脚本使用项目的虚拟环境并强制本次服务通过 Windows BLE 直连；要使用其他端口，可传入 `-Port 8001`。保持窗口运行；按 Ctrl+C 退出。确保设备已开机、可发现，且没有被手机或其他控制程序占用。
 
 MCP endpoint 是 `http://127.0.0.1:8000/mcp`。把它填入支持 Streamable HTTP 的 MCP 客户端；配置格式因客户端而异，[HTTP 配置示例](./mcp-config.http.example.json)使用常见的 `type: http` / `url` 字段。要让其他电脑或云端模型访问，需部署到受保护的主机或配置经过认证的安全隧道；不要把无认证的 BLE 控制端口直接暴露到公网。
 
+### Windows 网页控制台
+
+网页控制台可独立使用 Windows 蓝牙。先让 MCP 或手机 App 断开设备，再在项目目录启动网页服务：
+
+```powershell
+& .\start-windows-web.ps1
+```
+
+保持该窗口运行，在另一个 PowerShell 窗口打开带本次会话授权的页面（以下为 Chrome 安装在默认位置的示例）：
+
+```powershell
+$webSession = Get-Content -Raw -LiteralPath (Join-Path $env:TEMP 'tfptpro-web-8765.json') | ConvertFrom-Json
+Start-Process -FilePath 'C:\Program Files\Google\Chrome\Application\chrome.exe' -ArgumentList $webSession.url
+```
+
+页面中扫描并选择设备，连接后可触发吮吸或 1 秒震动测试。震动前需用实体键切换模式；网页的震动测试会自动发送停止帧。网页与 Windows MCP 各自持有蓝牙连接，切换控制端前先断开当前连接。运行时文件包含临时控制令牌，请勿分享或提交；关闭服务后重新启动会生成新令牌。
+
 ### 与 WSL 网页控制台共用设备
 
-本机适配器由 WSL2 持有时，推荐使用 [MCP Web 桥接配置](./mcp-config.web-bridge.example.json)：MCP 在 Windows 侧运行，通过本地受令牌保护的 API 调用 WSL 网页控制器，不会再创建第二个 BLE 连接。先启动你的 WSL 网页控制器，将配置中的 `command` 指向已安装本项目的 Python 解释器。桥接会从 WSL 读取当前令牌和 IP，不需要把令牌写进 MCP 配置。
+可选的 [MCP Web 桥接配置](./mcp-config.web-bridge.example.json) 用于适配器由 WSL2 持有、且已启动兼容网页控制器的情况；Windows 原生直连不需要它。此配置依赖 WSL 控制器的运行时文件和网络设置，不能直接连接上面的 Windows 网页服务。
 
 若要让 MCP 自己直接持有 BLE 连接，也可在 WSL 安装依赖并使用 [WSL 直接 BLE 配置](./mcp-config.wsl.example.json)；此模式下网页与 MCP 不能同时连接设备。
 
@@ -119,8 +125,8 @@ MCP endpoint 是 `http://127.0.0.1:8000/mcp`。把它填入支持 Streamable HTT
 
 | 工具 | 作用 |
 | --- | --- |
-| `list_devices` | 扫描附近 BLE 设备；若控制器已有连接，则返回最近一次扫描列表并标记已连接设备 |
-| `connect_device` | 按扫描地址连接，并匹配已支持的型号及 GATT 能力；若已有其他设备连接，需先断开 |
+| `list_devices` | 扫描附近 BLE 设备，标记可识别的型号及当前连接 |
+| `connect_device` | 按扫描地址连接，并匹配已支持的型号及 GATT 能力 |
 | `get_device_status` | 查看 MCP 自己持有的连接状态 |
 | `set_vibration` | 设置 DK-META2 / TF-PTPRO 震动强度并持续输出，需先用 TF-PTPRO 实体键切到震动模式 |
 | `set_linear` | 设置伸缩强度，范围 `0–100` |
@@ -192,7 +198,7 @@ checksum = (-(command + value)) & 0xFF
 - MCP 退出、显式断开和停止操作都会尝试把支持的输出归零；
 - 官方心跳元力客户端和 MCP 不应同时持有同一个 GATT 连接。连接失败时先在官方客户端中断开设备；
 - `list_devices` 展示附近设备不代表它们可控制；只有列出的已知 profile 可连接并开放相应 MCP 动作。未知名称设备即使广播 FFAC 也不会自动套用控制命令；
-- BLE 控制器一次只维护一个连接。已有连接时 `list_devices` 不会开始新扫描，而会返回上次发现列表；要连接另一设备，先调用 `disconnect_device`，再扫描并按地址连接；
+- BLE 控制器一次只维护一个连接。扫描时会标记当前连接；切换设备时，直连模式会先尝试停止并断开已有连接；
 - TF-PTPRO 震动需先由设备实体键切换模式。网页的一秒测试仍自动停止；MCP `set_vibration` 持续输出，`stop_vibration` 发送候选单通道停止帧，隔离效果尚未真机验证；`stop_device` 会归零所有输出。2026-10-26 用户确认吮吸和震动均可感知；协议通知不测量物理力度；
 - TF-PTPRO 的扫描与连接运行在 MCP 所在操作系统的蓝牙栈。当前蓝牙适配器直通 WSL 时，Windows MCP 无法同时使用该适配器；
 - BLE 连接本身依赖操作系统权限和设备固件行为，本项目不实现厂商账号认证、加密配对或云端授权；

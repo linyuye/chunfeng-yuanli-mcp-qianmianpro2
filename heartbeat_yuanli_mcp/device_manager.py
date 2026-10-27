@@ -442,7 +442,8 @@ class DokiDokiDeviceManager:
                     "notification": action_notification if acknowledged else None,
                     "duration_seconds": None,
                     "auto_stop": None,
-                    "meaning": "设备回报了对应命令和值；这不测量物理力度或输出。"}
+                    "meaning": ("设备回报了对应命令和值；这不测量物理力度或输出。" if acknowledged
+                                else "指令已写入，但未收到对应动作的设备回报；请观察设备实际状态。")}
         finally:
             if entry in self._notification_waiters:
                 self._notification_waiters.remove(entry)

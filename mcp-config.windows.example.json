@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "heartbeat-yuanli": {
+      "command": "C:/path/to/chunfeng-yuanli-mcp-qianmianpro2/.venv/Scripts/python.exe",
+      "args": ["-m", "heartbeat_yuanli_mcp.server"],
+      "env": {
+        "TFPTPRO_WEB_BRIDGE": "0",
+        "DOKIDOKI_DEVICE_NAME": "TF-PTPRO"
+      }
+    }
+  }
+}

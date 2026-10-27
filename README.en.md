@@ -8,7 +8,7 @@ This experimental implementation is based on observed client communication. It d
 
 ## Install and diagnose
 
-Requirements: Python 3.11+, BLE-capable OS/hardware, Bluetooth enabled, scanning/connection permissions and an available supported device. This workstation currently passes its adapter through usbipd to Ubuntu 24.04 / WSL2; see the Chinese guide for the WSL MCP configuration.
+Requirements: Python 3.11+, a Windows BLE adapter, Bluetooth enabled, scanning/connection permissions and an available supported device. Windows direct BLE control was verified on TF-PTPRO on 2026-10-27 without WSL; the user observed both 5% vibration and a one-shot suction action.
 
 ```powershell
 git clone https://github.com/linyuye/chunfeng-yuanli-mcp-qianmianpro2.git
@@ -38,7 +38,18 @@ Use the virtual environment's absolute Python path:
 
 Replace the path with the interpreter where you installed the project. Other systems use their corresponding interpreter. Entry points are `heartbeat-yuanli-mcp` and `python -m heartbeat_yuanli_mcp.server`. See [configuration example](mcp-config.example.json) and [Chinese guide](README.md).
 
-For a URL-based connection, start FastMCP with Streamable HTTP: `python -m heartbeat_yuanli_mcp.server --transport http --host 127.0.0.1 --port 8000`. MCP clients connect to `http://127.0.0.1:8000/mcp`; see [HTTP configuration example](mcp-config.http.example.json). The service binds to loopback by default. Do not expose the unauthenticated BLE control endpoint to the public internet.
+For a URL-based Windows connection, run `& .\start-windows-mcp.ps1` in PowerShell from the project directory. The script selects direct Windows BLE and serves Streamable HTTP at `http://127.0.0.1:8000/mcp`; see [HTTP configuration example](mcp-config.http.example.json). For stdio, use [the Windows configuration example](mcp-config.windows.example.json) and replace the Python path with your own. The service binds to loopback by default. Do not expose the unauthenticated BLE control endpoint to the public internet.
+
+## Windows web controller
+
+Disconnect the device from MCP or another app, then run `& .\start-windows-web.ps1` in the project directory. Keep that window open. In a second PowerShell window, open the session URL with Chrome installed at its default path:
+
+```powershell
+$webSession = Get-Content -Raw -LiteralPath (Join-Path $env:TEMP 'tfptpro-web-8765.json') | ConvertFrom-Json
+Start-Process -FilePath 'C:\Program Files\Google\Chrome\Application\chrome.exe' -ArgumentList $webSession.url
+```
+
+Scan and select the device in the page. Vibration tests last one second and send a stop frame; select vibration mode with the physical button first. The Windows web controller and the direct MCP server use separate BLE connections, so disconnect the active controller before switching. The runtime file contains a temporary control token; do not share or commit it.
 
 ## First use
 

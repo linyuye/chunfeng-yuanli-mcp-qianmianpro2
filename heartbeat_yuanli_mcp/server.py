@@ -70,12 +70,11 @@ def _error_result(exc: Exception) -> dict[str, Any]:
 
 
 @mcp.tool(name="list_devices", description="扫描附近所有 BLE 设备；结果会标明本 MCP 可识别的设备型号。")
-async def list_devices(prefix: str | None = None, timeout: float = 5.0) -> dict[str, Any]:
+async def list_devices(ctx: Context, prefix: str | None = None, timeout: float = 5.0) -> dict[str, Any]:
     """Return nearby BLE devices without connecting or sending commands."""
 
-    manager = _new_manager()
     try:
-        return {"ok": True, **(await manager.list_devices(timeout=timeout, prefix=prefix))}
+        return {"ok": True, **(await _manager(ctx).list_devices(timeout=timeout, prefix=prefix))}
     except Exception as exc:
         return _error_result(exc)
 
@@ -172,7 +171,9 @@ async def _doctor() -> int:
     except Exception as exc:
         result["ok"] = False
         result["error"] = {"code": "doctor_failed", "message": str(exc)}
-    print(json.dumps(result, ensure_ascii=False))
+    # Windows consoles may use GBK and nearby device names can contain emoji.
+    # ASCII JSON escapes preserve every name without relying on the console codec.
+    print(json.dumps(result, ensure_ascii=True))
     return 0 if result["ok"] else 1
 
 

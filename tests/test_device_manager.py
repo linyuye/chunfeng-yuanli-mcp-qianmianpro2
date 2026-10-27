@@ -60,6 +60,22 @@ class DeviceManagerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(len(manager._client.frames), 1)
         self.assertIsNone(result["auto_stop"])
 
+    async def test_missing_notification_is_not_reported_as_acknowledged(self) -> None:
+        manager = DokiDokiDeviceManager()
+        manager._profile = TF_PTPRO_PROFILE
+        manager._write_no_response = object()
+
+        class SilentClient:
+            is_connected = True
+
+            async def write_gatt_char(self, _characteristic, _data, response):
+                pass
+
+        manager._client = SilentClient()
+        result = await manager.set_action("vibration", 5, confirm=True)
+        self.assertFalse(result["acknowledged"])
+        self.assertIn("未收到", result["meaning"])
+
     async def test_tf_ptpro_stop_vibration_sends_only_vibration_zero(self) -> None:
         manager = DokiDokiDeviceManager()
         manager._profile = TF_PTPRO_PROFILE

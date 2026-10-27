@@ -17,11 +17,11 @@ class WebBridgeTests(unittest.IsolatedAsyncioTestCase):
             return {
                 "connected": True,
                 "device_name": "TF-PTPRO",
-                "address": "60:28:0E:A4:9B:62",
+                "address": "02:00:00:00:00:01",
                 "protocol_match": True,
                 "devices": [
-                    {"name": "TF-PTPRO", "address": "60:28:0E:A4:9B:62", "source": "connected"},
-                    {"name": "Nearby", "address": "AA:BB:CC:DD:EE:FF", "source": "scan"},
+                    {"name": "TF-PTPRO", "address": "02:00:00:00:00:01", "source": "connected"},
+                    {"name": "Nearby", "address": "02:00:00:00:00:02", "source": "scan"},
                 ],
             }
 
@@ -53,11 +53,11 @@ class WebBridgeTests(unittest.IsolatedAsyncioTestCase):
 
         async def fake_call(route: str, data=None):
             calls.append((route, data))
-            return {"connected": True, "address": "60:28:0E:A4:9B:62", "protocol_match": True}
+            return {"connected": True, "address": "02:00:00:00:00:01", "protocol_match": True}
 
         bridge._call = fake_call  # type: ignore[method-assign]
         with self.assertRaisesRegex(WebBridgeError, "请先断开"):
-            await bridge.connect(address="AA:BB:CC:DD:EE:FF")
+            await bridge.connect(address="02:00:00:00:00:02")
         self.assertEqual(calls, [("/api/status", None)])
 
     async def test_connect_returns_status_for_the_already_connected_address(self) -> None:
@@ -68,13 +68,13 @@ class WebBridgeTests(unittest.IsolatedAsyncioTestCase):
             return {
                 "connected": True,
                 "device_name": "TF-PTPRO",
-                "address": "60:28:0E:A4:9B:62",
+                "address": "02:00:00:00:00:01",
                 "protocol_match": True,
                 "available_actions": ["suction"],
             }
 
         bridge._call = fake_call  # type: ignore[method-assign]
-        result = await bridge.connect(address="60:28:0E:A4:9B:62")
+        result = await bridge.connect(address="02:00:00:00:00:01")
         self.assertEqual(result["device"]["name"], "TF-PTPRO")
         self.assertEqual(result["capabilities"], ["suction"])
 
